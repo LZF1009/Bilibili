@@ -1,0 +1,2 @@
+直接在pycharm上运行就可以了在setting中修改自己的mysql数据库数据，然后进行数据迁移工作。
+需要分析的数据可以直接从spider.py中的主程序更改target_keywords的关键词就可以分析相关数据。
