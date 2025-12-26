@@ -1,0 +1,440 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}  <!-- 现在可以正常加载 -->
+
+{% block title %}{{ videoinfo.title }} - B站视频数据分析可视化系统{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 全局主题色（B站风格：粉色+深灰） */
+:root {
+    --theme-pink: #ff729f;
+    --theme-dark: #232323;
+    --theme-light: #f5f5f5;
+    --theme-gray: #666;
+}
+
+/* 页面头部优化 */
+.page-header {
+    background: linear-gradient(135deg, var(--theme-pink), #ff9bbf);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(255, 114, 159, 0.3);
+    border-radius: 20px;
+}
+.breadcrumb .text-white {
+    color: rgba(255,255,255,0.9) !important;
+}
+.breadcrumb .text-white:hover {
+    color: white !important;
+    text-decoration: underline;
+}
+
+/* 视频详情卡片优化 */
+.video-detail-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+.video-detail-card:hover {
+    transform: translateY(-3px);
+}
+.video-thumbnail {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 数据统计样式优化 */
+.stat-item {
+    padding: 0.8rem 1.2rem;
+    background: var(--theme-light);
+    border-radius: 8px;
+    margin-right: 1rem;
+    margin-bottom: 1rem;
+}
+.stat-number {
+    color: var(--theme-dark);
+    font-weight: 600;
+}
+.stat-label {
+    color: var(--theme-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 标签样式优化 */
+.badge.bg-light {
+    background-color: #f8f9fa !important;
+    color: var(--theme-dark);
+    border: 1px solid #eee;
+    transition: all 0.2s;
+}
+.badge.bg-light:hover {
+    background-color: var(--theme-pink) !important;
+    color: white;
+    border-color: var(--theme-pink);
+}
+
+/* 收藏按钮优化 */
+.wishlist-btn {
+    background: white;
+    border: 1px solid var(--theme-pink);
+    color: var(--theme-pink);
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.wishlist-btn.added {
+    background: var(--theme-pink);
+    color: white;
+}
+.wishlist-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(255, 114, 159, 0.2);
+}
+
+/* 评论区优化 */
+.comment-card {
+    border: none;
+    background: var(--theme-light);
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+}
+.comment-form textarea {
+    border-radius: 8px;
+    border: 1px solid #eee;
+    padding: 1.2rem;
+    resize: none;
+    width: 280%;
+    
+}
+.comment-form button {
+    background: var(--theme-pink);
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1.5rem;
+    transition: all 0.2s;
+}
+.comment-form button:hover {
+    background: #ff5a8f;
+    transform: scale(1.05);
+}
+
+/* 相关视频容器（滚动条+高度适配评论区） */
+.related-videos-container {
+    max-height: 1254px; /* 固定高度，避免过高 */
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+/* 自定义滚动条 */
+.related-videos-container::-webkit-scrollbar {
+    width: 6px;
+}
+.related-videos-container::-webkit-scrollbar-track {
+    background: var(--theme-light);
+    border-radius: 3px;
+}
+.related-videos-container::-webkit-scrollbar-thumb {
+    background: var(--theme-pink);
+    border-radius: 3px;
+}
+/* 相关视频卡片优化 */
+.related-video-card {
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 1rem !important;
+}
+.related-video-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.related-thumbnail {
+    border-radius: 4px;
+}
+
+/* 响应式适配 */
+@media (max-width: 992px) {
+    .related-videos-container {
+        max-height: 400px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <div class="row col-lg-8">
+            <h1 class="display-5 mb-3">{{ videoinfo.title }}</h1>
+            <nav aria-label="breadcrumb" class="bg-transparent">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'index' %}" class="text-white">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'videolist' %}" class="text-white">视频列表</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">视频详情</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<section class="aft-section-padding">
+    <div class="container">
+        <div class="row">
+            <!-- 视频主信息 -->
+            <div class="col-lg-8">
+                <div class="video-detail-card card mb-4">
+                    <div class="card-body">
+                        <!-- 视频缩略图 -->
+                        <img src="{% if videoinfo.image_url %}{{ videoinfo.image_url }}{% else %}{% static 'assets/img/portfolio/default.jpg' %}{% endif %}" 
+                             class="video-thumbnail" 
+                             alt="{{ videoinfo.title }}"
+                             onerror="this.src='{% static 'assets/img/portfolio/default.jpg' %}'">
+                        
+                        <!-- 视频基础信息 -->
+                        <h2 class="card-title mt-4">{{ videoinfo.title }}</h2>
+                        <p class="text-muted mb-3">
+                            <i class="fas fa-user me-2"></i>{{ videoinfo.author }}
+                            <span class="ms-4"><i class="fas fa-calendar me-2"></i>{{ videoinfo.publish_timestamp|date:"Y-m-d H:i" }}</span>
+                        </p>
+                        
+                        <!-- 分类/类型/时长标签 -->
+                        <div class="mb-3">
+                            <span class="badge bg-primary me-2">{{ videoinfo.category }}</span>
+                            <span class="badge bg-secondary me-2">{{ videoinfo.video_type }}</span>
+                            <span class="badge bg-info">{{ videoinfo.duration }}</span>
+                        </div>
+                        
+                        <!-- 数据统计 -->
+                        <div class="d-flex flex-wrap video-stats mb-4">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ videoinfo.likes_count|default:"0" }}</div>
+                                <div class="stat-label">点赞数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ videoinfo.comments_count|default:"0" }}</div>
+                                <div class="stat-label">评论数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ videoinfo.favorites_count|default:"0" }}</div>
+                                <div class="stat-label">收藏数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ videoinfo.views_count|default:"0" }}</div>
+                                <div class="stat-label">播放量</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 标签 -->
+                        {% if videoinfo.tags %}
+                            <div class="mb-4">
+                                <h5 class="mb-2">标签</h5>
+                                {% for tag in videoinfo.tags|split:" " %}
+                                    <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- 收藏按钮 -->
+                        {% if request.session.user_id %}
+                            <div class="d-flex gap-2 mt-4">
+                                <button class="wishlist-btn {% if is_wishlist %}added{% else %}not-added{% endif %}" 
+                                        onclick="toggleWishlist({{ videoinfo.id }})">
+                                    <i class="fas fa-heart me-2"></i>
+                                    <span id="wishlist-text">{% if is_wishlist %}已收藏{% else %}收藏视频{% endif %}</span>
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <p>当前视频ID：{{ videoinfo.id }}</p>
+                <p>评论列表数量：{{ commentlist|length }}</p>
+                <p>评论数据：{{ commentlist|slice:":1" }}</p> 
+                <!-- 评论区 -->
+                <div class="card video-detail-card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-comments me-2"></i>评论 ({{ commentlist|length }})</h5>
+                    </div>
+                    <div class="card-body comment-list-container">
+                        <!-- 评论列表 -->
+                        {% for comment in commentlist %}
+                            <div class="comment-card">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="mb-1">{{ comment.realname }}</h6>
+                                    <small class="text-muted">{{ comment.ctime|date:"n-d H:i" }}</small>
+                                </div>
+                                <p class="mb-1">{{ comment.content }}</p>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted text-center py-4">暂无评论，快来抢沙发吧！</p>
+                        {% endfor %}
+
+                        <!-- 评论输入框 -->
+                        {% if request.session.user_id %}
+                            <div class="comment-form mt-4">
+                                <h5 class="mb-3">发表评论：</h5>
+                                <form id="commentForm">
+                                    {% csrf_token %}
+                                    <textarea class="form-control" id="commentText" rows="3" 
+                                              placeholder="写下你的评论..." required></textarea>
+                                    <div class="mt-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-paper-plane me-2"></i>发表评论
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <p class="text-muted">请<a href="{% url 'login' %}" class="text-primary">登录</a>后发表评论</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 相关视频 -->
+            <div class="col-lg-4">
+                <div class="video-detail-card card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-video me-2"></i>相关视频</h5>
+                    </div>
+                    <div class="card-body related-videos-container">
+                        {% for video in categorys %} 
+                            <div class="related-video-card card">
+                                <div class="card-body p-3">
+                                    <img src="{% if video.image_url %}{{ video.image_url }}{% else %}{% static 'assets/img/portfolio/default.jpg' %}{% endif %}" 
+                                         class="related-thumbnail" 
+                                         alt="{{ video.title }}"
+                                         onerror="this.src='{% static 'assets/img/portfolio/default.jpg' %}'"
+                                         style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;">
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title mb-1">
+                                            <a href="{% url 'myapp_videodetail' video.id %}" class="text-decoration-none">
+                                                {{ video.title|truncatechars:40 }}
+                                            </a>
+                                        </h6>
+                                        <small class="text-muted">{{ video.author }}</small>
+                                        <div class="small text-muted mt-1">
+                                            <i class="fas fa-thumbs-up me-1"></i>{{ video.likes_count }}
+                                            <i class="fas fa-comment ms-2 me-1"></i>{{ video.comments_count }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">暂无相关视频</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleWishlist(videoId) {
+    const btn = document.querySelector('.wishlist-btn');
+    const text = document.getElementById('wishlist-text');
+    const isAdded = btn.classList.contains('added');
+
+    const url = isAdded ? `/remove_wishlist/${videoId}/` : `/add_wishlist/${videoId}/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === "success") {
+            if (isAdded) {
+                btn.classList.remove('added');
+                btn.classList.add('not-added');
+                text.textContent = "收藏视频";
+            } else {
+                btn.classList.remove('not-added');
+                btn.classList.add('added');
+                text.textContent = "已收藏";
+            }
+        } else {
+            alert(data.message || "操作失败");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("操作失败，请稍后重试");
+    });
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const commentForm = document.getElementById('commentForm');
+    if (!commentForm) return;
+
+    commentForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const commentText = document.getElementById('commentText').value.trim();
+        const videoid = {{ videoinfo.id }};
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        if (!commentText) {
+            alert('请输入评论内容');
+            return;
+        }
+
+        fetch("{% url 'myhome_comment' videoinfo.id %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `comment=${encodeURIComponent(commentText)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // 使用唯一类名选择评论列表容器
+                const commentContainer = document.querySelector('.comment-list-container');
+                const newComment = document.createElement('div');
+                newComment.className = 'comment-card';
+                newComment.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h6 class="mb-1">${data.realname}</h6>
+                        <small class="text-muted">${data.ctime}</small>
+                    </div>
+                    <p class="mb-1">${data.comment}</p>
+                `;
+                
+                // 移除“暂无评论”提示
+                const emptyTip = commentContainer.querySelector('.text-muted');
+                if (emptyTip) emptyTip.remove();
+                
+                // 添加新评论到顶部
+                commentContainer.insertBefore(newComment, commentContainer.firstChild);
+
+                // 清空输入框
+                document.getElementById('commentText').value = '';
+            } else {
+                alert(data.message || '评论失败，请重试');
+            }
+        })
+        .catch(error => {
+            console.error('评论失败:', error);
+            alert('网络异常，请稍后重试');
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,874 @@
+{% extends 'base.html' %}
+{% load static custom_filters %}
+
+{% block title %}视频数据可视化分析 - B站视频数据分析及可视化系统{% endblock %}
+{% block extra_css %}
+<style>
+/* 全局主题色（B站粉+清新蓝） */
+:root {
+    --theme-pink: #ff4bb8;
+    --theme-pink-light: #f67a98;
+    --theme-pink-bg: #fff0f5;
+    --theme-blue: #45b7d1;
+    --theme-text-dark: #20434b;
+    --theme-text-gray: #666;
+    --theme-border: #e4ccd4;
+    --theme-shadow: 0 4px 12px rgba(255, 75, 184, 0.1);
+    --theme-shadow-hover: 0 6px 16px rgba(255, 75, 184, 0.15);
+}
+
+/* 页面头部优化 */
+.page-header {
+    background: linear-gradient(135deg, var(--theme-pink), var(--theme-pink-light));
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+    border-radius: 16px;
+    box-shadow: var(--theme-shadow);
+}
+.page-header .breadcrumb {
+    background: transparent !important;
+}
+.page-header .breadcrumb a {
+    color: rgba(255, 255, 255, 0.9) !important;
+    transition: all 0.3s;
+}
+.page-header .breadcrumb a:hover {
+    color: white !important;
+    text-decoration: underline;
+}
+.page-header h1 {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.page-header .lead {
+    opacity: 0.9;
+    font-size: 1.2rem;
+}
+
+/* 统计卡片样式 */
+.stats-overview {
+    margin-bottom: 2rem;
+}
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: var(--theme-shadow);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--theme-shadow-hover);
+}
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--theme-pink);
+    margin-bottom: 0.5rem;
+}
+.stat-label {
+    font-size: 1rem;
+    color: var(--theme-text-gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 图表容器样式 */
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--theme-shadow);
+    transition: all 0.3s ease;
+    position: relative;
+    margin-bottom: 2rem;
+}
+.chart-container:hover {
+    box-shadow: var(--theme-shadow-hover);
+}
+.chart-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    color: var(--theme-pink);
+    font-size: 16px;
+}
+.chart-error {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 240, 245, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    color: #dc3545;
+    font-size: 14px;
+    padding: 20px;
+    text-align: center;
+}
+.chart-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--theme-text-dark);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--theme-pink-bg);
+}
+.chart-wrapper {
+    height: 350px;
+    width: 100%;
+    margin-bottom: 1rem;
+    min-height: 200px;
+}
+.insight-card {
+    background: var(--theme-pink-bg);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    color: var(--theme-text-dark);
+    font-size: 0.9rem;
+}
+.insight-card h6 {
+    font-weight: 600;
+    margin-right: 0.5rem;
+    color: var(--theme-pink);
+    display: inline-block;
+}
+
+/* 响应式适配 */
+@media (max-width: 992px) {
+    .chart-wrapper {
+        height: 300px;
+    }
+    .stat-number {
+        font-size: 2rem;
+    }
+    .page-header {
+        padding: 2rem 0;
+    }
+}
+@media (max-width: 768px) {
+    .chart-wrapper {
+        height: 250px;
+    }
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+}
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    position: relative;
+}
+
+.stat-main-number {
+    font-size: 3.5rem;
+    font-weight: bold;
+    color: #ff6b9d; /* 粉色，与您的图片一致 */
+    margin-bottom: 5px;
+}
+
+.stat-main-label {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.stat-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 15px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+.stat-secondary-number {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ff6b9d;
+    margin-right: 8px;
+}
+
+.stat-secondary-label {
+    font-size: 1rem;
+    color: #999;
+}
+.page-navigation {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 50px;
+        padding-top: 30px;
+        border-top: 1px solid #eaeaea;
+    }
+.nav-btn {
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-prev {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-prev:hover {
+        background-color: #5a6268;
+        color: white;
+        transform: translateX(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-next {
+        background-color: var(--accent-color);
+        color: white;
+    }
+    
+    .btn-next:hover {
+        background-color: #3a66e0;
+        color: white;
+        transform: translateX(3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    .btn-next {
+        background-color: blue;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <div class="text-center">
+            <h1 class="display-4 m-1">视频数据可视化分析</h1>
+            <p class="lead">完整数据挖掘流程，探究内容生态趋势</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb justify-content-center bg-transparent">
+                    <li class="breadcrumb-item"><a href="{% url 'index' %}" class="text-white">首页</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">视频数据可视化</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<section class="aft-section-padding">
+    <div class="container">
+        <div class="stats-overview">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <!-- 视频类型数：video_types是类型列表，length是类型分类数 -->
+                <div class="stat-number">{{ video_types|length|default:0}}</div>
+                <div class="stat-label">视频类型</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+    <div class="stat-card">
+        <!-- 合并显示：活跃作者数占据主导地位 -->
+        <div class="stat-main-number">{{ active_author_count|default:0}}</div>
+        <div class="stat-main-label">活跃作者</div>
+        
+        <div class="stat-secondary">
+            <span class="stat-secondary-number">{{ total_authors_count|default:0 }}</span>
+            <span class="stat-secondary-label">总作者数</span>
+        </div>
+    </div>
+</div>
+        
+        <div class="col-md-4">
+            <div class="stat-card">
+                <!-- 热门视频数：用视图新增的hot_video_count -->
+                <div class="stat-number">{{ hot_video_count|default:0}}</div>
+                <div class="stat-label">热门视频</div>
+            </div>
+        </div>
+    </div>
+</div>
+        <!-- 图表分析模块 -->
+        <div class="row mt-5">
+            <!-- 视频类型分布 - 饼图 -->
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-pie me-2"></i>视频类型分布
+                    </div>
+                    <div class="chart-wrapper" id="videoTypeChart">
+                        <div class="chart-loading" id="videoTypeLoading">加载中...</div>
+                        <div class="chart-error" id="videoTypeError" style="display: none;">数据加载失败，请刷新重试</div>
+                    </div>
+                    <div class="insight-card">
+                        <h6><i class="fas fa-lightbulb me-2"></i>数据洞察</h6>
+                        <p class="mb-0">展示不同类型视频的数量占比，帮助了解平台内容结构</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 作者投稿排行 - 雷达图 -->
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-radar me-2"></i>作者投稿排行
+                    </div>
+                    <div class="chart-wrapper" id="authorChart">
+                        <div class="chart-loading" id="authorLoading">加载中...</div>
+                        <div class="chart-error" id="authorError" style="display: none;">数据加载失败，请刷新重试</div>
+                    </div>
+                    <div class="insight-card">
+                        <h6><i class="fas fa-lightbulb me-2"></i>数据洞察</h6>
+                        <p class="mb-0">展示投稿视频数量最多的作者，反映平台核心创作群体</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 视频点赞排行 - 漏斗图 -->
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-filter me-2"></i>视频点赞排行
+                    </div>
+                    <div class="chart-wrapper" id="likesChart">
+                        <div class="chart-loading" id="likesLoading">加载中...</div>
+                        <div class="chart-error" id="likesError" style="display: none;">数据加载失败，请刷新重试</div>
+                    </div>
+                    <div class="insight-card">
+                        <h6><i class="fas fa-lightbulb me-2"></i>数据洞察</h6>
+                        <p class="mb-0">展示获得点赞数最多的视频，反映用户兴趣趋势</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 视频收藏排行 - 条形图 -->
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-bar me-2"></i>视频收藏排行
+                    </div>
+                    <div class="chart-wrapper" id="favoritesChart">
+                        <div class="chart-loading" id="favoritesLoading">加载中...</div>
+                        <div class="chart-error" id="favoritesError" style="display: none;">数据加载失败，请刷新重试</div>
+                    </div>
+                    <div class="insight-card">
+                        <h6><i class="fas fa-lightbulb me-2"></i>数据洞察</h6>
+                        <p class="mb-0">展示收藏量最高的视频，体现内容价值和用户偏好</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<section class="page-navigation">
+        <a href="{% url 'ai_chat_page' %}" class="nav-btn btn-prev">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+            </svg>
+            AI助手
+        </a>
+        <a href="{% url 'keshihua1' %}" class="nav-btn btn-next">
+            趋势分析
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+            </svg>
+        </a>
+    </section>
+</section>
+
+<!-- 数据脚本 -->
+<script id="video-types-data" type="application/json">{{ video_types|safe }}</script>
+<script id="authors-data" type="application/json">{{ authors|safe }}</script>
+<script id="likes-data" type="application/json">{{ likes|safe }}</script>
+<script id="likes-titles-data" type="application/json">{{ likes_titles|safe }}</script>
+<script id="favorites-data" type="application/json">{{ favorites|safe }}</script>
+<script id="favorites-titles-data" type="application/json">{{ favorites_titles|safe }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initAllCharts, 500);
+});
+
+function getChartData(elementId) {
+    try {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            console.warn(`元素 ${elementId} 不存在`);
+            return [];
+        }
+        const text = element.textContent || element.innerText;
+        if (!text || text.trim() === '') {
+            console.warn(`元素 ${elementId} 内容为空`);
+            return [];
+        }
+        return JSON.parse(text);
+    } catch (error) {
+        console.error(`解析 ${elementId} 数据失败:`, error);
+        return [];
+    }
+}
+
+let charts = {};
+
+function initAllCharts() {
+    if (typeof echarts === 'undefined') {
+        console.error('ECharts未加载完成，请检查网络连接');
+        setTimeout(initAllCharts, 100);
+        return;
+    }
+    
+    initChartContainers();
+    renderAllCharts();
+    
+    window.addEventListener('resize', function () {
+        Object.values(charts).forEach(chart => {
+            if (chart && typeof chart.resize === 'function') {
+                chart.resize();
+            }
+        });
+    });
+}
+
+function initChartContainers() {
+    const chartConfigs = [
+        { id: 'videoTypeChart', key: 'videoType' },
+        { id: 'authorChart', key: 'author' },
+        { id: 'likesChart', key: 'likes' },
+        { id: 'favoritesChart', key: 'favorites' }
+    ];
+    
+    chartConfigs.forEach(config => {
+        const element = document.getElementById(config.id);
+        if (element) {
+            try {
+                charts[config.key] = echarts.init(element);
+            } catch (error) {
+                console.error(`初始化图表容器 ${config.id} 失败:`, error);
+            }
+        }
+    });
+}
+
+function renderAllCharts() {
+    renderVideoTypeChart();
+    renderAuthorChart();
+    renderLikesChart();
+    renderFavoritesChart();
+}
+
+function renderVideoTypeChart() {
+    const loadingEl = document.getElementById('videoTypeLoading');
+    const errorEl = document.getElementById('videoTypeError');
+    const chart = charts.videoType;
+    
+    if (!chart) {
+        showError(loadingEl, errorEl, '图表初始化失败');
+        return;
+    }
+    
+    try {
+        const rawData = getChartData('video-types-data');
+        const data = processPieChartData(rawData);
+        
+        if (data.length === 0) {
+            showError(loadingEl, errorEl, '暂无视频类型数据');
+            return;
+        }
+        
+        // 饼图配置 - 移除图例
+        const option = {
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            series: [{
+                name: '视频类型分布',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['50%', '50%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: true,
+                    formatter: '{b}: {d}%',
+                    fontSize: 12
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                    }
+                },
+                labelLine: {
+                    show: true
+                },
+                data: data.map((item, index) => ({
+                    ...item,
+                    itemStyle: {
+                        color: getPieChartColor(index)
+                    }
+                }))
+            }]
+        };
+        
+        chart.setOption(option);
+        loadingEl.style.display = 'none';
+    } catch (error) {
+        showError(loadingEl, errorEl, error.message);
+    }
+}
+
+function renderAuthorChart() {
+    const loadingEl = document.getElementById('authorLoading');
+    const errorEl = document.getElementById('authorError');
+    const chart = charts.author;
+    
+    if (!chart) {
+        showError(loadingEl, errorEl, '图表初始化失败');
+        return;
+    }
+    
+    try {
+        const rawData = getChartData('authors-data');
+        const { names, values } = processBarChartData(rawData, 8);
+        
+        if (names.length === 0) {
+            showError(loadingEl, errorEl, '暂无作者数据');
+            return;
+        }
+        
+        // 雷达图配置
+        const indicator = names.map((name, index) => ({
+            name: name,
+            max: Math.max(...values) * 1.2
+        }));
+        
+        const option = {
+            radar: {
+                indicator: indicator,
+                shape: 'circle',
+                splitNumber: 5,
+                axisName: {
+                    color: '#20434b',
+                    fontSize: 11,
+                    borderRadius: 3,
+                    padding: [3, 5]
+                },
+                splitArea: {
+                    areaStyle: {
+                        color: ['rgba(255, 75, 184, 0.1)', 'rgba(255, 75, 184, 0.05)'],
+                        shadowColor: 'rgba(0, 0, 0, 0.2)',
+                        shadowBlur: 10
+                    }
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: 'rgba(255, 75, 184, 0.3)'
+                    }
+                }
+            },
+            series: [{
+                name: '作者投稿排行',
+                type: 'radar',
+                data: [{
+                    value: values,
+                    name: '投稿数量',
+                    areaStyle: {
+                        color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
+                            { offset: 0, color: 'rgba(255, 75, 184, 0.5)' },
+                            { offset: 1, color: 'rgba(255, 75, 184, 0.1)' }
+                        ])
+                    },
+                    lineStyle: {
+                        color: '#ff4bb8',
+                        width: 2
+                    },
+                    symbol: 'circle',
+                    symbolSize: 6,
+                    label: {
+                        show: true,
+                        formatter: function(params) {
+                            return params.value;
+                        }
+                    }
+                }]
+            }]
+        };
+        
+        chart.setOption(option);
+        loadingEl.style.display = 'none';
+    } catch (error) {
+        showError(loadingEl, errorEl, error.message);
+    }
+}
+
+function renderLikesChart() {
+    const loadingEl = document.getElementById('likesLoading');
+    const errorEl = document.getElementById('likesError');
+    const chart = charts.likes;
+    
+    if (!chart) {
+        showError(loadingEl, errorEl, '图表初始化失败');
+        return;
+    }
+    
+    try {
+        const likesData = getChartData('likes-data');
+        const likesTitles = getChartData('likes-titles-data');
+        
+        if (!Array.isArray(likesData) || !Array.isArray(likesTitles) || likesData.length === 0) {
+            showError(loadingEl, errorEl, '暂无点赞数据');
+            return;
+        }
+        
+        const processedData = processRankingData(likesData, likesTitles, 10);
+        
+        // 漏斗图配置
+        const option = {
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b} : {c}'
+            },
+            series: [{
+                name: '点赞数量',
+                type: 'funnel',
+                left: '10%',
+                top: 60,
+                bottom: 60,
+                width: '80%',
+                min: 0,
+                max: Math.max(...processedData.values),
+                minSize: '0%',
+                maxSize: '100%',
+                sort: 'descending',
+                gap: 2,
+                label: {
+                    show: true,
+                    position: 'inside',
+                    formatter: '{b}: {c}',
+                    color: '#fff',
+                    fontSize: 12
+                },
+                labelLine: {
+                    length: 10,
+                    lineStyle: {
+                        width: 1,
+                        type: 'solid'
+                    }
+                },
+                itemStyle: {
+                    borderColor: '#fff',
+                    borderWidth: 1
+                },
+                emphasis: {
+                    label: {
+                        fontSize: 16
+                    }
+                },
+                data: processedData.names.map((name, index) => ({
+                    name: name,
+                    value: processedData.values[index],
+                    itemStyle: {
+                        color: getFunnelColor(index, processedData.names.length)
+                    }
+                }))
+            }]
+        };
+        
+        chart.setOption(option);
+        loadingEl.style.display = 'none';
+    } catch (error) {
+        console.error('点赞图表渲染错误:', error);
+        showError(loadingEl, errorEl, '数据加载失败: ' + error.message);
+    }
+}
+
+function renderFavoritesChart() {
+    const loadingEl = document.getElementById('favoritesLoading');
+    const errorEl = document.getElementById('favoritesError');
+    const chart = charts.favorites;
+    
+    if (!chart) {
+        showError(loadingEl, errorEl, '图表初始化失败');
+        return;
+    }
+    
+    try {
+        const favoritesData = getChartData('favorites-data');
+        const favoritesTitles = getChartData('favorites-titles-data');
+        
+        if (!Array.isArray(favoritesData) || !Array.isArray(favoritesTitles) || favoritesData.length === 0) {
+            showError(loadingEl, errorEl, '暂无收藏数据');
+            return;
+        }
+        
+        const processedData = processRankingData(favoritesData, favoritesTitles, 10);
+        
+        // 条形图配置
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                top: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: function(value) {
+                        if (value >= 10000) return (value / 10000).toFixed(1) + 'w';
+                        if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+                        return value;
+                    }
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: processedData.names,
+                axisLabel: {
+                    fontSize: 12,
+                    interval: 0
+                }
+            },
+            series: [{
+                name: '收藏数量',
+                type: 'bar',
+                data: processedData.values.map((value, index) => ({
+                    value: value,
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            { offset: 0, color: '#45b7d1' },
+                            { offset: 1, color: '#9fceb4' }
+                        ])
+                    }
+                })),
+                label: {
+                    show: true,
+                    position: 'right',
+                    formatter: '{c}'
+                }
+            }]
+        };
+        
+        chart.setOption(option);
+        loadingEl.style.display = 'none';
+    } catch (error) {
+        console.error('收藏图表渲染错误:', error);
+        showError(loadingEl, errorEl, '数据加载失败: ' + error.message);
+    }
+}
+
+// 辅助函数
+function getPieChartColor(index) {
+    const colors = [
+        '#ff4bb8', '#45b7d1', '#9fceb4', '#ff9ec9', 
+        '#f67a98', '#ffeaad', '#e4ccd4', '#b8e6f2'
+    ];
+    return colors[index % colors.length];
+}
+
+function getFunnelColor(index, total) {
+    const startColor = [255, 75, 184]; // #ff4bb8
+    const endColor = [69, 183, 209];   // #45b7d1
+    
+    const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * (index / total));
+    const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * (index / total));
+    const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * (index / total));
+    
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function processPieChartData(rawData) {
+    if (!rawData || (typeof rawData !== 'object')) return [];
+    
+    if (Array.isArray(rawData)) {
+        return rawData.map((item, index) => {
+            if (Array.isArray(item) && item.length >= 2) {
+                return { name: item[0] || `类型${index + 1}`, value: Number(item[1]) || 0 };
+            } else if (item && typeof item === 'object') {
+                return { name: item.name || `类型${index + 1}`, value: Number(item.value) || 0 };
+            }
+            return null;
+        }).filter(Boolean);
+    }
+    
+    return Object.entries(rawData).map(([name, value], index) => ({
+        name: name || `类型${index + 1}`,
+        value: Number(value) || 0
+    }));
+}
+
+function processBarChartData(rawData, limit = 10) {
+    const data = processPieChartData(rawData);
+    const sorted = data.sort((a, b) => b.value - a.value).slice(0, limit);
+    
+    return {
+        names: sorted.map(item => item.name.length > 8 ? item.name.substring(0, 8) + '...' : item.name),
+        values: sorted.map(item => item.value)
+    };
+}
+
+function processRankingData(valuesData, titlesData, limit = 10) {
+    if (!Array.isArray(valuesData) || !Array.isArray(titlesData)) {
+        return { names: [], values: [] };
+    }
+    
+    const minLen = Math.min(valuesData.length, titlesData.length);
+    const combined = [];
+    
+    for (let i = 0; i < minLen; i++) {
+        combined.push({
+            title: titlesData[i] || `视频${i + 1}`,
+            value: Number(valuesData[i]) || 0
+        });
+    }
+    
+    const sorted = combined.sort((a, b) => b.value - a.value).slice(0, limit);
+    
+    return {
+        names: sorted.map(item => item.title.length > 12 ? item.title.substring(0, 12) + '...' : item.title),
+        values: sorted.map(item => item.value)
+    };
+}
+
+function showError(loadingEl, errorEl, message) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (errorEl) {
+        errorEl.innerHTML = message;
+        errorEl.style.display = 'flex';
+    }
+}
+</script>
+{% endblock %}

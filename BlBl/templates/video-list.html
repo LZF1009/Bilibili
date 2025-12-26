@@ -1,0 +1,371 @@
+
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}视频列表 - B站视频数据分析系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- 搜索和筛选栏 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="get" action="{% url 'videolist' %}" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" 
+                       placeholder="搜索视频标题/作者" value="{{ request.GET.search|default:'' }}">
+                <button type="submit" class="btn btn-primary">搜索</button>
+                {% if request.GET.search %}
+                    <a href="{% url 'videolist' %}" class="btn btn-outline-secondary ms-2">清空</a>
+                {% endif %}
+            </form>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-end">
+                <div class="btn-group me-2">
+                    <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}sort=default" 
+                       class="btn btn-outline-secondary {% if request.GET.sort == 'default' or not request.GET.sort %}active{% endif %}">
+                        默认排序
+                    </a>
+                    <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}sort=latest" 
+                       class="btn btn-outline-secondary {% if request.GET.sort == 'latest' %}active{% endif %}">
+                        最新发布
+                    </a>
+                    <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}sort=most_liked" 
+                       class="btn btn-outline-secondary {% if request.GET.sort == 'most_liked' %}active{% endif %}">
+                        最多点赞
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类筛选栏 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="btn-group flex-wrap" role="group">
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}category=all&{% if request.GET.sort %}sort={{ request.GET.sort }}{% endif %}" 
+                   class="btn btn-outline-primary {% if selected_category == 'all' %}active{% endif %}">
+                    全部分类
+                </a>
+                {% for cat in category %}
+                    <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}category={{ cat.category }}&{% if request.GET.sort %}sort={{ request.GET.sort }}{% endif %}" 
+                       class="btn btn-outline-primary {% if selected_category == cat.category %}active{% endif %}">
+                        {{ cat.category }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据概览卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <h6>当前分类：</h6>
+                            <p class="fw-bold">{{ selected_category|default:"全部" }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6>视频总数：</h6>
+                            <p class="fw-bold">{{ page_obj.paginator.count }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6>总点赞数：</h6>
+                            <p class="fw-bold">{{ total_likes|default:"0" }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6>总评论数：</h6>
+                            <p class="fw-bold">{{ total_comments|default:"0" }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6>总收藏数：</h6>
+                            <p class="fw-bold">{{ total_favorites|default:"0" }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <h6>当前页码：</h6>
+                            <p class="fw-bold">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视频列表卡片 -->
+<div class="row">
+    {% for video in page_obj %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <!-- 视频缩略图和时长（修正图片字段为image_url） -->
+                <div class="position-relative">
+                    <img src="{% if video.image_url %}{{ video.image_url }}{% else %}{% static 'assets/img/portfolio/default.jpg' %}{% endif %}" 
+                         class="video-thumbnail" 
+                         alt="{{ video.title|default:'视频封面' }}"
+                         onerror="this.src='{% static 'assets/img/portfolio/default.jpg' %}'">
+                    {% if video.duration %}
+                        <span class="position-absolute bottom-0 end-0 bg-dark text-white p-1 rounded" style="font-size: 0.8rem;">
+                            {{ video.duration }}
+                        </span>
+                    {% endif %}
+                    <!-- 热门标识（修正字段为likes_count） -->
+                    {% if video.likes_count and video.likes_count > 1000 %}
+                        <span class="position-absolute top-0 start-0 bg-danger text-white p-1 rounded" style="font-size: 0.7rem;">
+                            热门
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <!-- 视频信息 -->
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="{% url 'myapp_videodetail' video.id %}" 
+                           class="text-decoration-none hover-text-primary">
+                            {{ video.title|truncatechars:30|default:'无标题' }}
+                        </a>
+                    </h5>
+                    <p class="card-text text-muted">
+                        <small>作者: {{ video.author|default:'未知作者' }} | 发布时间: {{ video.publish_timestamp|date:"Y-m-d"|default:'未知时间' }}</small>
+                    </p>
+                    <p>
+                        <span class="badge bg-primary">{{ video.category|default:'未分类' }}</span>
+                        <span class="badge bg-secondary">{{ video.video_type|default:'无类型' }}</span>
+                        {% if video.tags %}
+                            {% for tag in video.tags|slice:":2" %}
+                                <span class="badge bg-light text-dark">#{{ tag }}</span>
+                            {% endfor %}
+                            {% if video.tags|length > 2 %}
+                                <span class="badge bg-light text-dark">+{{ video.tags|length|add:"-2" }}</span>
+                            {% endif %}
+                        {% endif %}
+                    </p>
+                    
+                    <!-- 视频数据统计（修正为数据库实际字段） -->
+                    <div class="video-stats mt-3">
+                        <div class="stat-item">
+                            <i class="fas fa-thumbs-up text-primary"></i>
+                            <span>{{ video.likes_count|default:"0" }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-comment text-success"></i>
+                            <span>{{ video.comments_count|default:"0" }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-heart text-danger"></i>
+                            <span>{{ video.favorites_count|default:"0" }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-eye text-info"></i>
+                            <span>{{ video.views_count|default:"0" }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 评分 -->
+                    {% if video.rating %}
+                        <div class="mt-3">
+                            <div class="rating">
+                                {% for star in "12345"|make_list %}
+                                    <i class="fas fa-star {% if forloop.counter <= video.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                {% endfor %}
+                                <span class="ms-2">{{ video.rating }}/5</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- 操作栏 -->
+                <div class="card-footer bg-transparent d-flex justify-content-between">
+                    <div>
+                        <a href="{% url 'myapp_videodetail' video.id %}" class="btn btn-primary btn-sm">
+                            查看详情
+                        </a>
+                        {% if user.is_authenticated %}
+                            <button class="btn btn-outline-danger btn-sm ms-2" onclick="favoriteVideo({{ video.id }})">
+                                <i class="far fa-heart"></i> 收藏
+                            </button>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">
+                        {% if video.update_timestamp %}
+                            最后更新: {{ video.update_timestamp|date:"m-d" }}
+                        {% else %}
+                            最后更新: 无
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <!-- 无数据时的提示 -->
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-video" style="font-size: 4rem; color: #ccc;"></i>
+            <p class="mt-3 text-muted">暂无视频数据</p>
+            {% if request.GET.search %}
+                <p class="text-muted">未找到 "{{ request.GET.search }}" 相关结果</p>
+                <a href="{% url 'videolist' %}" class="btn btn-outline-primary mt-2">返回全部</a>
+            {% else %}
+                <p class="text-muted">请尝试切换其他分类查看</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+
+    <!-- 分页控件 -->
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="row mt-5">
+            <div class="col-12 d-flex justify-content-center">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        <!-- 上一页 -->
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                    上一页
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">上一页</span>
+                            </li>
+                        {% endif %}
+
+                        <!-- 页码（只显示当前页附近的页码） -->
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                                    <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ num }}">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                            {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ num }}">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                            {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        <!-- 下一页 -->
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                    下一页
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">下一页</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 视频卡片样式优化 */
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.video-thumbnail {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+.stat-item {
+    display: inline-block;
+    margin-right: 15px;
+    font-size: 0.9rem;
+}
+.stat-item i {
+    margin-right: 3px;
+}
+.hover-text-primary:hover {
+    color: #0d6efd !important;
+}
+.rating {
+    color: #ffc107;
+}
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .btn-group {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .btn-group .btn {
+        flex: 1;
+        margin-bottom: 5px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 收藏视频功能
+function favoriteVideo(videoId) {
+    fetch(`/api/favorite/${videoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('收藏成功！');
+        } else {
+            alert('收藏失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败，请重试');
+    });
+}
+
+// 获取CSRF Token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 平滑滚动
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.querySelector(this.getAttribute('href')).scrollIntoView({
+            behavior: 'smooth'
+        });
+    });
+});
+</script>
+{% endblock %}

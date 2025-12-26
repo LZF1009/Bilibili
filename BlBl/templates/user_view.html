@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}个人中心-B站视频数据分析及可视化系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 自定义样式（根据实际需要添加） */
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <h1 class="display-5 mb-3">个人中心</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb bg-transparent">
+                        <li class="breadcrumb-item"><a href="{% url 'index' %}" class="text-white">首页</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">个人中心</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Section -->
+<section class="at-section-padding">
+    <div class="container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="row align-items-center">
+                <div class="col-md-3 text-center">
+                    <div class="avatar-upload">
+                        <img src="{% if user.face %}{% static user.face %}{% else %}{% static 'assets/img/team/default-avatar.jpg' %}{% endif %}" 
+                             class="profile-avatar" alt="用户头像" id="avatarPreview">
+                        <div class="avatar-overlay">
+                            <i class="fas fa-camera text-white" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h2 class="mb-2">{{ user.username }}</h2>
+                    <p class="mb-2"><i class="fas fa-envelope me-2"></i>{{ user.email|default:"未设置邮箱" }}</p>
+                    <p class="mb-2"><i class="fas fa-phone me-2"></i>{{ user.phone|default:"未设置手机" }}</p>
+                    <p class="mb-0"><i class="fas fa-calendar me-2"></i>注册时间：{{ user.addtime|date:"Y-m-d" }}</p>
+                </div>
+                <div class="col-md-3 text-end">
+                    <div class="quick-actions">
+                        <a href="{% url 'change_password' %}" class="quick-action-btn">
+                            <i class="fas fa-key"></i>修改密码
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Profile Form -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-user-edit me-2"></i>个人信息
+                    </h4>
+                    
+                    <!-- Success/Error Messages -->
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data" id="profileForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">
+                                        <i class="fas fa-user me-2"></i>用户名
+                                    </label>
+                                    <input type="text" class="form-control" id="username" name="username"
+                                           value="{{ user.username }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">
+                                        <i class="fas fa-envelope me-2"></i>邮箱地址
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email"
+                                           value="{{ user.email|default:'' }}" placeholder="请输入邮箱地址">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">
+                                        <i class="fas fa-phone me-2"></i>手机号码
+                                    </label>
+                                    <input type="tel" class="form-control" id="phone" name="phone"
+                                           value="{{ user.phone|default:'' }}" placeholder="请输入手机号码">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="addtime" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>注册时间
+                                    </label>
+                                    <input type="datetime-local" class="form-control" id="addtime" name="addtime"
+                                           value="{{ user.addtime|date:'Y-m-d\TH:i' }}" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="info" class="form-label">
+                                <i class="fas fa-info-circle me-2"></i>个人简介
+                            </label>
+                            <textarea class="form-control" id="info" name="info" rows="4"
+                                      placeholder="介绍一下自己吧...">{{ user.info|default:'' }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="avatar" class="form-label">
+                                <i class="fas fa-image me-2"></i>头像上传
+                            </label>
+                            <input type="file" class="form-control" id="avatar" name="avatar" accept="image/*">
+                            <small class="text-muted">支持 JPG、PNG 格式，文件大小不超过 2MB</small>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>保存修改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Statistics Sidebar -->
+            <div class="col-lg-4">
+                <!-- Quick Actions -->
+                <div class="profile-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-bolt me-2"></i>快捷操作
+                    </h4>
+                    <div class="d-grid gap-3">
+                        <a href="{% url 'videolist' %}" class="quick-action-btn">
+                            <i class="fas fa-video"></i>浏览视频
+                        </a>
+                        <a href="{% url 'video_rec' %}" class="quick-action-btn">
+                            <i class="fas fa-robot"></i>获取推荐
+                        </a>
+                        <a href="{% url 'keshihua' %}" class="quick-action-btn">
+                            <i class="fas fa-chart-line"></i>数据分析
+                        </a>
+                        <a href="{% url 'wordcloud' %}" class="quick-action-btn">
+                            <i class="fas fa-cloud"></i>词云分析
+                        </a>
+                        <a href="{% url 'logout' %}" class="quick-action-btn" style="color: #dc3545;">
+                            <i class="fas fa-sign-out-alt"></i>退出登录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 头像预览功能
+    $('#avatar').change(function() {
+        const file = this.files[0];
+        if (file) {
+            // 检查文件大小(2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('文件大小不能超过 2MB');
+                this.value = '';
+                return;
+            }
+            
+            // 检查文件类型
+            if (!file.type.match('image.*')) {
+                alert('请选择图片文件');
+                this.value = '';
+                return;
+            }
+            
+            // 预览图片
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#avatarPreview').attr('src', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // 点击头像区域触发文件选择
+    $('.avatar-upload').click(function(e) {
+        e.preventDefault();
+        $('#avatar').click();
+    });
+
+    // 表单验证
+    $('#profileForm').submit(function(e) {
+        const username = $('#username').val().trim();
+        const email = $('#email').val().trim();
+        const phone = $('#phone').val().trim();
+
+        if (!username) {
+            alert('用户名不能为空');
+            return false;
+        }
+
+        if (username.length < 1 || username.length > 20) {
+            alert('用户名长度应为1-20个字符');
+            return false;
+        }
+
+        if (email && !isValidEmail(email)) {
+            alert('请输入有效的邮箱地址');
+            return false;
+        }
+        
+        if (phone && !isValidPhone(phone)) {
+            alert('请输入有效的手机号码');
+            return false;
+        }
+        
+        // 提示保存状态
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>保存中...</i>');
+        
+        // 恢复按钮状态（如果有错误会阻止提交）
+        setTimeout(function() {
+            submitBtn.prop('disabled', false).html(originalText);
+        }, 5000);
+    });
+    
+    // 邮箱验证函数
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+    
+    // 手机号验证函数
+    function isValidPhone(phone) {
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        return phoneRegex.test(phone);
+    }
+});
+</script>
+{% endblock %}

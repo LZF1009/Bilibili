@@ -1,0 +1,449 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>{% block title %}B站视频数据分析及可视化系统{% endblock %}</title>
+    <link rel="shortcut icon" href="{% static 'assets/img/favicon.png' %}" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+    
+    <!-- 公共 CSS 资源 -->
+    <link rel="stylesheet" href="{% static 'assets/bootstrap/css/bootstrap.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/responsive.css' %}">
+    
+    <!-- 核心配色+样式（渐变粉+浅紫+薄荷绿） -->
+    <style>
+        :root {
+            --grad-start: #ff9bb3; /* 渐变粉起点 */
+            --grad-mid: #d895ff;  /* 渐变紫中点 */
+            --grad-end: #95efff;  /* 渐变薄荷绿终点 */
+            --footer-bg: #ff9bb3; /* 底部背景粉 */
+            --text-white: #ffffff; /* 修复：补充白色值 */
+            --text-gray: #333;
+        }
+
+        /* 头部导航栏（渐变+圆角+阴影） */
+        .top-header {
+            background: linear-gradient(90deg, var(--grad-start), var(--grad-mid), var(--grad-end));
+            padding: 0.8rem 2rem;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 5px 15px rgba(255, 155, 179, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            {#color: var(--text-white);#}
+            width: 100%;
+        }
+        .top-header .logo-text {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+        .top-header .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            font-size: 1rem;
+            align-items: center;
+        }
+        .top-header .nav-links a {
+            color: black(--text-white); /* 修复：去掉错误的black()函数 */
+            text-decoration: none;
+            padding: 0.3rem 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .top-header .nav-links a:hover,
+        .top-header .nav-links a.active {
+            border-bottom: 2px solid var(--text-white);
+            transform: translateY(-2px);
+        }
+
+        /* 导航下拉菜单样式 - 修改为点击触发 */
+        .nav-dropdown {
+            position: relative;
+        }
+        .nav-dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.3rem 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            color: var(--text-white); /* 确保文字颜色正确 */
+        }
+        .nav-dropdown-toggle:hover,
+        .nav-dropdown.active .nav-dropdown-toggle {
+            border-bottom: 2px solid var(--text-white);
+            transform: translateY(-2px);
+        }
+        .nav-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+            z-index: 1000;
+            display: none; /* 默认隐藏 */
+            margin-top: 0.5rem;
+        }
+        /* 移除悬停显示的样式，改为点击控制 */
+
+        .nav-dropdown-item {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: #333;
+            text-decoration: none;
+            transition: background-color 0.3s;
+            border-left: 3px solid transparent;
+        }
+        .nav-dropdown-item:hover {
+            background-color: #f8f9fa;
+            border-left: 3px solid var(--grad-start);
+        }
+        .nav-dropdown-item.active {
+            background-color: #f0f0f0;
+            border-left: 3px solid var(--grad-mid);
+        }
+
+        /* 用户下拉菜单样式 */
+        .user-dropdown {
+            position: relative;
+        }
+        .user-dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-white); /* 确保文字颜色正确 */
+        }
+        .user-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+            z-index: 1000;
+            display: none;
+        }
+        .user-dropdown:hover .user-dropdown-menu {
+            display: block;
+        }
+        .user-dropdown-item {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: #333;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .user-dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        .user-dropdown-divider {
+            height: 1px;
+            background-color: #e9ecef;
+            margin: 0.5rem 0;
+        }
+
+        /* 底部栏（满宽+低高度+圆角） */
+        .bottom-footer {
+            background-color: var(--footer-bg);
+            color: var(--text-white);
+            padding: 1.2rem 2rem;
+            margin-top: 2rem;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 15px rgba(255, 155, 179, 0.3);
+            width: 100%;
+        }
+        .footer-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            font-size: 0.9rem;
+        }
+        .footer-column {
+            flex: 1;
+            min-width: 180px;
+        }
+        .footer-column h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+            border-bottom: 2px solid var(--text-white);
+            padding-bottom: 0.3rem;
+            display: inline-block;
+        }
+        .footer-column p {
+            line-height: 1.5;
+        }
+        .footer-column ul {
+            list-style: none;
+            padding: 0;
+        }
+        .footer-column ul li {
+            margin-bottom: 0.6rem;
+        }
+        .footer-column ul li a {
+            color: var(--text-white);
+            text-decoration: none;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+        .footer-column ul li a:hover {
+            opacity: 1;
+        }
+        .footer-column .contact-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.6rem;
+        }
+        .footer-column .contact-info i {
+            margin-right: 0.5rem;
+            width: 18px;
+        }
+        .social-icons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.8rem;
+        }
+        .social-icons a {
+            color: var(--text-white);
+            font-size: 1.1rem;
+            transition: transform 0.3s;
+        }
+        .social-icons a:hover {
+            transform: scale(1.2);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+    {% block login_page_css %}{% endblock %}
+</head>
+
+<body style="margin: 0; padding: 0; font-family: 'Noto Sans', sans-serif; background: #f9f5ff;">
+    <div class="page-wrapper">
+        <!-- 预加载器 -->
+        <div class="atf-preloader">
+            <div class="atf-status">
+                <div class="atf-status-mes"></div>
+            </div>
+        </div>
+        
+        <!-- 头部导航栏 -->
+        <div class="top-header">
+            <div class="logo-text">B站数据分析系统</div>
+            <div class="nav-links">
+                <a href="{% url 'index' %}" class="{% if request.path == '/' %}active{% endif %}">首页</a>
+                
+                <!-- 数据分析下拉菜单 - 修改为点击触发 -->
+                <div class="nav-dropdown {% if request.path == '/keshihua/' or request.path == '/keshihua1/' or request.path == '/wordcloud/' %}active{% endif %}">
+                    <div class="nav-dropdown-toggle">
+                        数据分析
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="nav-dropdown-menu">
+                        <a href="{% url 'keshihua' %}" class="nav-dropdown-item {% if request.path == '/keshihua/' %}active{% endif %}">
+                            <i class="fas fa-chart-bar me-2"></i>数据可视化
+                        </a>
+                        <a href="{% url 'keshihua1' %}" class="nav-dropdown-item {% if request.path == '/keshihua1/' %}active{% endif %}">
+                            <i class="fas fa-chart-line me-2"></i>趋势分析
+                        </a>
+                        <a href="{% url 'wordcloud' %}" class="nav-dropdown-item {% if request.path == '/wordcloud/' %}active{% endif %}">
+                            <i class="fas fa-cloud me-2"></i>词云分析
+                        </a>
+                    </div>
+                </div>
+                
+                <a href="{% url 'videolist' %}" class="{% if request.path == '/videolist/' %}active{% endif %}">视频数据</a>
+                
+                <!-- 推荐系统下拉菜单 - 修改为点击触发 -->
+                <div class="nav-dropdown {% if request.path == '/video_rec/' or request.path == '/ai_assistant/' %}active{% endif %}">
+                    <div class="nav-dropdown-toggle">
+                        推荐系统
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="nav-dropdown-menu">
+                        <a href="{% url 'video_rec' %}" class="nav-dropdown-item {% if request.path == '/video_rec/' %}active{% endif %}">
+                            <i class="fas fa-robot me-2"></i>视频推荐
+                        </a>
+                        <a href="{% url 'ai_chat_page' %}" class="nav-dropdown-item {% if request.path == '/ai_assistant/' %}active{% endif %}">
+                            <i class="fas fa-comments me-2"></i>AI助手
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 根据登录状态显示不同内容 -->
+                {% if request.session.user_id %}
+                    <!-- 用户已登录 - 显示用户下拉菜单 -->
+                    <div class="user-dropdown">
+                        <div class="user-dropdown-toggle">
+                            <i class="fas fa-user-circle"></i>
+                            {{ request.session.username|default:"用户" }}
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="user-dropdown-menu">
+                            <a href="{% url 'user_view' %}" class="user-dropdown-item">
+                                <i class="fas fa-user me-2"></i>个人中心
+                            </a>
+                            <a href="{% url 'change_password' %}" class="user-dropdown-item">
+                                <i class="fas fa-key me-2"></i>修改密码
+                            </a>
+                            <div class="user-dropdown-divider"></div>
+                            <a href="{% url 'logout' %}" class="user-dropdown-item" style="color: #dc3545;">
+                                <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- 用户未登录 - 显示注册和登录链接 -->
+                    <a href="{% url 'register' %}" class="{% if request.path == '/register/' %}active{% endif %}">注册</a>
+                    <a href="{% url 'login' %}" class="{% if request.path == '/login/' %}active{% endif %}">登录</a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 页面内容区 -->
+        <div style="max-width: 1200px; margin: 2rem auto; padding: 0 1rem;">
+            {% block content %}{% endblock %}
+        </div>
+        
+        <!-- 底部栏（满宽+低高度） -->
+        <div class="bottom-footer">
+            <div class="footer-container">
+                <div class="footer-column">
+                    <h4>关于系统</h4>
+                    <p>B站视频数据分析及可视化系统，提供全面的视频数据分析和智能推荐服务。</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-gitee"></i></a>
+                        <a href="#"><i class="fab fa-qq"></i></a>
+                        <a href="#"><i class="fas fa-user"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="{% url 'index' %}">系统首页</a></li>
+                        <li><a href="{% url 'keshihua' %}">数据可视化</a></li>
+                        <li><a href="{% url 'keshihua1' %}">趋势分析</a></li>
+                        <li><a href="{% url 'wordcloud' %}">词云分析</a></li>
+                        <li><a href="{% url 'videolist' %}">视频数据</a></li>
+                        <li><a href="{% url 'video_rec' %}">推荐系统</a></li>
+                        <li><a href="{% url 'ai_chat_page' %}">AI助手</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>功能模块</h4>
+                    <ul>
+                        <li><a href="{% url 'keshihua' %}">数据可视化</a></li>
+                        <li><a href="{% url 'keshihua1' %}">趋势分析</a></li>
+                        <li><a href="{% url 'wordcloud' %}">词云分析</a></li>
+                        <li><a href="{% url 'video_rec' %}">智能推荐</a></li>
+                        <li><a href="{% url 'ai_chat_page' %}">AI助手</a></li>
+                        <li><a href="{% url 'user_view' %}">用户中心</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>联系我们</h4>
+                    <div class="contact-info">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>北京市海淀区中关村大街1号</span>
+                    </div>
+                    <div class="contact-info">
+                        <i class="fas fa-phone"></i>
+                        <span>400-9999</span>
+                    </div>
+                    <div class="contact-info">
+                        <i class="fas fa-envelope"></i>
+                        <span>bili_analysis@example.com</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 公共 JavaScript -->
+    <script src="{% static 'assets/js/jquery-1.12.4.min.js' %}"></script>
+    <script src="{% static 'assets/bootstrap/js/bootstrap.js' %}"></script>
+    <script src="{% static 'assets/js/modernizr.custom.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.loader.js' %}"></script>
+    <script src="{% static 'assets/js/isotope.pkgd.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.stellar.min.js' %}"></script>
+    <script src="{% static 'assets/owlcarousel/js/owl.carousel.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.countTo.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.appear.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.speeder.min.js' %}"></script>
+    <script src="{% static 'assets/js/ajax-mail.js' %}"></script>
+    <script src="{% static 'assets/js/wow.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.meanmenu.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.slider.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.easing.min.js' %}"></script>
+    <script src="{% static 'assets/js/lightcase.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.magnific.min.js' %}"></script>
+    <script src="{% static 'assets/js/js.js' %}"></script>
+    <script src="{% static 'assets/js/main.js' %}"></script>
+    
+    <!-- 导航栏交互脚本 - 重点修改下拉菜单逻辑 -->
+    <script>
+        $(document).ready(function() {
+            // 当前页面高亮
+            $('.nav-links a').each(function() {
+                if (this.href === window.location.href) {
+                    $(this).addClass('active');
+                }
+            });
+            
+            // 1. 用户下拉菜单交互（点击触发）
+            $('.user-dropdown-toggle').click(function(e) {
+                e.stopPropagation();
+                $(this).siblings('.user-dropdown-menu').toggle();
+                // 关闭其他下拉菜单
+                $('.nav-dropdown-menu').hide();
+            });
+            
+            // 2. 数据分析/推荐系统下拉菜单交互（改为点击触发）
+            $('.nav-dropdown-toggle').click(function(e) {
+                e.stopPropagation();
+                // 切换当前下拉菜单的显示状态
+                var $menu = $(this).siblings('.nav-dropdown-menu');
+                $menu.toggle();
+                // 关闭其他下拉菜单
+                $('.nav-dropdown-menu').not($menu).hide();
+                // 关闭用户下拉菜单
+                $('.user-dropdown-menu').hide();
+            });
+            
+            // 3. 点击页面其他区域关闭所有下拉菜单
+            $(document).click(function() {
+                $('.user-dropdown-menu').hide();
+                $('.nav-dropdown-menu').hide();
+            });
+            
+            // 4. 阻止下拉菜单内部点击事件冒泡
+            $('.user-dropdown-menu, .nav-dropdown-menu').click(function(e) {
+                e.stopPropagation();
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

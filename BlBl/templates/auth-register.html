@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}用户注册 - B站视频数据分析及可视化系统{% endblock %}
+
+{% block login_page_css %}
+<style>
+    /* 全局布局：让内容区占满中间空间，页脚固定底部 */
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        margin: 0;
+    }
+    .page-wrapper {
+        flex: 1; /* 中间内容区占满剩余高度 */
+        display: flex;
+        flex-direction: column;
+    }
+    /* 导航栏居中 */
+    .top-header .nav-links {
+        justify-content: center; /* 导航项居中 */
+        width: 100%;
+    }
+    /* 注册区域容器：水平居中 + 垂直居中 */
+    .register-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        padding: 2rem 0;
+    }
+    /* 注册内容区：固定宽度 + 分栏布局 */
+    .register-container {
+        width: 100%;
+        max-width: 1000px; /* 限制最大宽度 */
+        display: flex;
+        gap: 2rem;
+        align-items: stretch; /* 左右栏高度一致 */
+    }
+    /* 左侧“您将获得”板块 */
+    .benefit-panel {
+        flex: 1;
+        background: linear-gradient(135deg, #d895ff 0%, #95efff 100%);
+        color: #333;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(149, 239, 255, 0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .benefit-panel h3 {
+        color: #fff;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+    .benefit-panel p {
+        color: #fff;
+        margin-bottom: 1.5rem;
+    }
+    .benefit-panel ul {
+        list-style: none;
+        padding: 0;
+    }
+    .benefit-panel li {
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        color: #fff;
+    }
+    .benefit-panel li i {
+        margin-right: 0.8rem;
+        font-size: 1.2rem;
+    }
+    /* 右侧注册表单区 */
+    .register-right {
+        flex: 1;
+        background: #fff;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(149, 239, 255, 0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .register-right h3 {
+        text-align: center;
+        margin-bottom: 1.5rem;
+        color: #d895ff;
+    }
+    /* 表单样式优化 */
+    .form-group {
+        margin-bottom: 1.2rem;
+        position: relative;
+    }
+    .form-group label {
+        display: flex;
+        align-items: center;
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+    .form-group label i {
+        margin-right: 0.5rem;
+        color: #d895ff;
+    }
+    .form-control {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #e0e0ff;
+        border-radius: 8px;
+        transition: border-color 0.3s;
+    }
+    .form-control:focus {
+        border-color: #d895ff;
+        outline: none;
+    }
+    /* 密码输入框容器（带显示按钮） */
+    .password-container {
+        position: relative;
+    }
+    .toggle-password {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #d895ff;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+    /* 密码强度样式 */
+    .password-strength {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+    }
+    .strength-text {
+        margin-right: 0.5rem;
+    }
+    .strength-bars {
+        display: flex;
+        gap: 4px;
+    }
+    .strength-bar {
+        width: 25px;
+        height: 6px;
+        border-radius: 3px;
+        background-color: #eee;
+    }
+    .strength-bar.weak {
+        background-color: #ff4d4f;
+    }
+    .strength-bar.medium {
+        background-color: #faad14;
+    }
+    .strength-bar.strong {
+        background-color: #52c41a;
+    }
+    /* 错误提示样式 */
+    .password-match-error, .form-error {
+        color: #ff4d4f;
+        font-size: 0.85rem;
+        margin-top: 0.3rem;
+        display: none;
+    }
+    .password-match-error.show, .form-error.show {
+        display: block;
+    }
+    /* 全局错误提示 */
+    .global-error {
+        color: #ff4d4f;
+        font-size: 0.9rem;
+        text-align: center;
+        margin-bottom: 1rem;
+        display: none;
+    }
+    .global-error.show {
+        display: block;
+    }
+    .btn-register {
+        width: 100%;
+        padding: 0.8rem;
+        background: linear-gradient(90deg, #d895ff 0%, #95efff 100%);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: opacity 0.3s;
+    }
+    .btn-register:hover {
+        opacity: 0.9;
+    }
+    .register-links {
+        text-align: center;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+    }
+    .register-links a {
+        color: #d895ff;
+        text-decoration: none;
+    }
+    .register-links a:hover {
+        text-decoration: underline;
+    }
+    /* 页脚固定在底部 */
+    .bottom-footer {
+        margin-top: auto; /* 自动推到底部 */
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-wrap">
+    <div class="register-container">
+        <!-- 左侧“您将获得”板块 -->
+        <div class="benefit-panel">
+            <h3>您将获得：</h3>
+            <p>创建您的账户，开启B站视频数据分析之旅，享受个性化推荐和专业的数据分析服务。</p>
+            <ul>
+                <li><i class="fas fa-chart-line"></i> 专业数据分析工具</li>
+                <li><i class="fas fa-magic"></i> 精准个性化推荐</li>
+                <li><i class="fas fa-sitemap"></i> 进阶分析功能</li>
+                <li><i class="fas fa-cloud"></i> 词云分析报告</li>
+                <li><i class="fas fa-shield-alt"></i> 隐私数据管理</li>
+                <li><i class="fas fa-rocket"></i> 试玩许多功能</li>
+            </ul>
+        </div>
+
+        <!-- 右侧注册表单区 -->
+        <div class="register-right">
+            <h3>用户注册</h3>
+            <!-- 全局错误提示 -->
+            <div class="global-error" id="globalError"></div>
+            <form id="registerForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="username"><i class="fas fa-user"></i> 用户名</label>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="请输入用户名" required>
+                    <div class="form-error" id="usernameError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="email"><i class="fas fa-envelope"></i> 邮箱</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="请输入邮箱" required>
+                    <div class="form-error" id="emailError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> 密码</label>
+                    <div class="password-container">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="请输入密码" required>
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <!-- 密码强度显示 -->
+                    <div class="password-strength">
+                        <span class="strength-text">密码强度：弱</span>
+                        <div class="strength-bars">
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                        </div>
+                    </div>
+                    <div class="form-error" id="passwordError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword"><i class="fas fa-lock"></i> 确认密码</label>
+                    <div class="password-container">
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="请再次输入密码" required>
+                        <button type="button" class="toggle-password" id="toggleConfirmPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <!-- 密码不匹配提示 -->
+                    <div class="password-match-error" id="passwordMatchError">
+                        <i class="fas fa-exclamation-circle"></i> 两次输入的密码不一致
+                    </div>
+                    <div class="form-error" id="confirmPasswordError"></div>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" id="agree" required>
+                    <label for="agree" style="display: inline;">我已阅读并同意相关条款</label>
+                    <div class="form-error" id="agreeError"></div>
+                </div>
+                <button type="submit" class="btn-register">注册</button>
+                <div class="register-links">
+                    <p>已有账户？<a href="{% url 'login' %}">立即登录</a></p>
+                    <p><a href="{% url 'index' %}">返回首页</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // 显示/隐藏密码功能
+    function setupPasswordToggle(toggleBtnId, passwordInputId) {
+        const toggleBtn = $(`#${toggleBtnId}`);
+        const passwordInput = $(`#${passwordInputId}`);
+        
+        toggleBtn.on('click', function() {
+            const type = passwordInput.attr('type') === 'password' ? 'text' : 'password';
+            passwordInput.attr('type', type);
+            
+            // 切换图标
+            const icon = toggleBtn.find('i');
+            icon.toggleClass('fa-eye fa-eye-slash');
+        });
+    }
+    
+    // 初始化密码显示切换
+    setupPasswordToggle('togglePassword', 'password');
+    setupPasswordToggle('toggleConfirmPassword', 'confirmPassword');
+
+    // 密码强度检测
+    const passwordInput = $('#password');
+    const strengthText = $('.strength-text');
+    const strengthBars = $('.strength-bar');
+    
+    passwordInput.on('input', function() {
+        const password = $(this).val();
+        let strength = 0;
+        
+        // 密码强度规则
+        if (password.length >= 8) strength++;
+        if (/[a-zA-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^a-zA-Z0-9]/.test(password)) strength++;
+        
+        // 更新强度显示
+        updatePasswordStrength(strength);
+        
+        // 检查确认密码
+        checkPasswordMatch();
+    });
+    
+    // 更新密码强度显示
+    function updatePasswordStrength(strength) {
+        // 重置所有强度条
+        strengthBars.removeClass('weak medium strong');
+        
+        if (strength === 0) {
+            strengthText.text('密码强度：弱');
+        } else if (strength === 1 || strength === 2) {
+            strengthText.text('密码强度：弱');
+            strengthBars.eq(0).addClass('weak');
+            if (strength === 2) strengthBars.eq(1).addClass('weak');
+        } else if (strength === 3) {
+            strengthText.text('密码强度：中');
+            strengthBars.eq(0).addClass('medium');
+            strengthBars.eq(1).addClass('medium');
+        } else {
+            strengthText.text('密码强度：强');
+            strengthBars.eq(0).addClass('strong');
+            strengthBars.eq(1).addClass('strong');
+            strengthBars.eq(2).addClass('strong');
+        }
+    }
+    
+    // 实时检查密码匹配
+    const confirmPasswordInput = $('#confirmPassword');
+    const passwordMatchError = $('#passwordMatchError');
+    
+    confirmPasswordInput.on('input', checkPasswordMatch);
+    
+    function checkPasswordMatch() {
+        const password = passwordInput.val();
+        const confirmPassword = confirmPasswordInput.val();
+        
+        if (confirmPassword.length > 0) {
+            passwordMatchError.toggleClass('show', password !== confirmPassword);
+        } else {
+            passwordMatchError.removeClass('show');
+        }
+    }
+
+    // 清空所有错误提示
+    function clearAllErrors() {
+        $('.form-error').removeClass('show').text('');
+        $('#globalError').removeClass('show').text('');
+        passwordMatchError.removeClass('show');
+    }
+    
+    // 表单提交验证
+    $('#registerForm').on('submit', function(e) {
+        e.preventDefault();
+        clearAllErrors();
+        
+        // 最后检查密码匹配
+        const password = passwordInput.val();
+        const confirmPassword = confirmPasswordInput.val();
+        
+        if (password !== confirmPassword) {
+            passwordMatchError.addClass('show');
+            return false;
+        }
+
+        // AJAX提交到后端
+        $.ajax({
+            url: "{% url 'register' %}",  // 后端注册接口URL
+            type: "POST",
+            data: {
+                username: $('#username').val(),
+                email: $('#email').val(),
+                password: password,
+                confirmPassword: confirmPassword,
+                agree: $('#agree').is(':checked'),
+                csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    alert('注册成功！即将跳转到登录页');
+                    window.location.href = "{% url 'login' %}";
+                } else {
+                    // 显示字段错误
+                    if (response.errors) {
+                        $.each(response.errors, function(key, message) {
+                            $(`#${key}Error`).text(message).addClass('show');
+                        });
+                    }
+                    // 显示全局错误
+                    if (response.message) {
+                        $('#globalError').text(response.message).addClass('show');
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX错误:', status, error);
+                $('#globalError').text('服务器错误，请稍后重试').addClass('show');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

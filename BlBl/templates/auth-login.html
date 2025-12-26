@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}用户登录 - B站视频数据分析及可视化系统{% endblock %}
+
+<!-- 登录页专属样式（隐藏头部/底部+独立布局） -->
+{% block login_page_css %}
+<style>
+    /* 隐藏base的头部和底部 */
+    .top-header, .bottom-footer {
+        display: none !important;
+    }
+
+    /* 登录页全屏背景（渐变粉紫） */
+    body {
+        background: linear-gradient(135deg, #ffd6e0 0%, #e0c3fc 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    /* 登录卡片（左右分栏） */
+    .login-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(255, 155, 179, 0.2);
+        width: 100%;
+        max-width: 800px;
+        overflow: hidden;
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    /* 左侧欢迎区（渐变粉+薄荷绿） */
+    .login-left {
+        flex: 1 1 350px;
+        background: linear-gradient(135deg, #ff9bb3 0%, #95efff 100%);
+        color: #fff;
+        padding: 3rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+    .login-left .welcome-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+    .login-left h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    .login-left p {
+        font-size: 1rem;
+        opacity: 0.9;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+    .login-features {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1rem;
+    }
+    .login-feature {
+        text-align: center;
+    }
+    .login-feature i {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+    }
+    .login-feature span {
+        font-size: 0.9rem;
+    }
+
+    /* 右侧登录表单区 */
+    .login-right {
+        flex: 1 1 400px;
+        padding: 3rem;
+    }
+    .login-right h3 {
+        font-size: 1.8rem;
+        color: #333;
+        text-align: center;
+        margin-bottom: 2rem;
+        font-weight: 600;
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+    .form-group label {
+        display: flex;
+        align-items: center;
+        color: #666;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+    .form-group label i {
+        margin-right: 0.5rem;
+        color: #ff9bb3;
+    }
+    .form-control {
+        width: 100%;
+        padding: 0.9rem 1rem 0.9rem 2.8rem;
+        border: 1px solid #f0e0ff;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        border-color: #ff9bb3;
+        box-shadow: 0 0 0 3px rgba(255, 155, 179, 0.2);
+        outline: none;
+    }
+    .form-group i.form-icon {
+        position: absolute;
+        left: 1rem;
+        top: 2.8rem;
+        transform: translateY(-50%);
+        color: #ff9bb3;
+        font-size: 1.1rem;
+    }
+    .remember-me {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+        color: #666;
+    }
+    .remember-me input {
+        margin-right: 0.5rem;
+        accent-color: #ff9bb3;
+    }
+    .btn-login {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(90deg, #ff9bb3 0%, #95efff 100%);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 155, 179, 0.3);
+    }
+    .login-links {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.95rem;
+    }
+    .login-links a {
+        color: #ff9bb3;
+        text-decoration: none;
+        margin: 0 0.5rem;
+    }
+    .login-links a:hover {
+        color: #d895ff;
+        text-decoration: underline;
+    }
+    .alert-error {
+        background-color: #fff5f5;
+        color: #dc2626;
+        border: 1px solid #ffe3e3;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        display: none;
+    }
+    .alert-error i {
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-card">
+    <!-- 左侧欢迎区 -->
+    <div class="login-left">
+        <div class="welcome-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <h2>欢迎回来</h2>
+        <p>
+            登录您的账户，继续探索B站视频数据的精彩世界。<br>
+            我们为您准备了强大的数据分析工具和个性化推荐服务。
+        </p>
+        <div class="login-features">
+            <div class="login-feature">
+                <i class="fas fa-chart-pie"></i>
+                <span>数据分析</span>
+            </div>
+            <div class="login-feature">
+                <i class="fas fa-robot"></i>
+                <span>智能推荐</span>
+            </div>
+            <div class="login-feature">
+                <i class="fas fa-cloud"></i>
+                <span>词云分析</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧登录表单区 -->
+    <div class="login-right">
+        <h3>用户登录</h3>
+        <div id="errorAlert" class="alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="errorMessage">用户名或密码错误</span>
+        </div>
+        <form id="loginForm">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">
+                    <i class="fas fa-user"></i> 用户名
+                </label>
+                <i class="fas fa-user form-icon"></i>
+                <input type="text" class="form-control" id="username" name="username" placeholder="请输入用户名" required>
+            </div>
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i> 密码
+                </label>
+                <i class="fas fa-lock form-icon"></i>
+                <input type="password" class="form-control" id="password" name="password" placeholder="请输入密码" required>
+            </div>
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe" class="form-check-input">
+                <label for="rememberMe" class="form-check-label">记住我</label>
+            </div>
+            <button type="submit" class="btn-login" id="loginBtn">
+                <i class="fas fa-sign-in-alt me-2"></i> 登录
+            </button>
+            <div class="login-links">
+                <p>还没有账户？<a href="{% url 'register' %}">立即注册</a></p>
+                <p><a href="{% url 'index' %}">返回首页</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const loginForm = $('#loginForm');
+    const errorAlert = $('#errorAlert');
+    const errorMessage = $('#errorMessage');
+    const loginBtn = $('#loginBtn');
+
+    loginForm.on('submit', function(e) {
+        e.preventDefault();
+        const username = $('#username').val().trim();
+        const password = $('#password').val().trim();
+
+        if (!username || !password) {
+            showError('用户名和密码不能为空');
+            return;
+        }
+
+        $.ajax({
+            url: "{% url 'login' %}",
+            type: "POST",
+            data: {
+                username: username,
+                password: password,
+                csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+            beforeSend: function() {
+                loginBtn.html('<i class="fas fa-spinner fa-spin me-2"></i> 登录中...');
+                loginBtn.prop('disabled', true);
+            },
+            success: function(res) {
+                // 修复：判断后端返回的success字段（与后端逻辑一致）
+                if (res.success) {
+                    // 修复：设置跳转地址（首页或视频列表页）
+                    window.location.href = "{% url 'index' %}";  // 或 "/videolist/"
+                } else {
+                    showError(res.error || '登录失败，请重试');
+                }
+            },
+            error: function() {
+                showError('服务器异常，请稍后重试');
+            },
+            complete: function() {
+                loginBtn.html('<i class="fas fa-sign-in-alt me-2"></i> 登录');
+                loginBtn.prop('disabled', false);
+            }
+        });
+    });
+
+    function showError(msg) {
+        errorMessage.text(msg);
+        errorAlert.fadeIn(300);
+        setTimeout(() => {
+            errorAlert.fadeOut(300);
+        }, 3000);
+    }
+
+    $('#username, #password').on('focus', function() {
+        errorAlert.hide();
+    });
+});
+</script>
+{% endblock %}
+{% if error_msg %}
+    <div class="alert alert-danger">{{ error_msg }}</div>
+{% endif %}

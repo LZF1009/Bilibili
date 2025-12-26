@@ -1,0 +1,501 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}首页 - B站视频数据分析及可视化系统{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 英雄区样式 */
+.hero-section {
+    padding: 8rem 0 6rem;
+    background: linear-gradient(135deg, rgba(255,155,179,0.1), rgba(216,149,255,0.1), rgba(149,239,255,0.1));
+    margin-top: 2rem;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("{% static 'assets/img/bg-pattern.png' %}");
+    background-repeat: repeat;
+    opacity: 0.05;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(90deg, var(--grad-start), var(--grad-mid), var(--grad-end));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-gray);
+    max-width: 700px;
+    margin: 0 auto 3rem;
+    line-height: 1.6;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.aft-themes-btn {
+    padding: 0.8rem 2rem;
+    border-radius: 30px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border: none;
+}
+
+.aft-themes-btn::after {
+    content: attr(data-hover);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.2);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.aft-themes-btn:hover::after {
+    transform: translateY(0);
+}
+
+.aft-themes-btn.ne-3 {
+    background: linear-gradient(90deg, var(--grad-start), var(--grad-mid));
+    color: white;
+    box-shadow: 0 5px 15px rgba(255,155,179,0.3);
+}
+
+.aft-themes-btn:not(.ne-3) {
+    background: white;
+    color: var(--grad-mid);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    border: 1px solid var(--grad-mid);
+}
+
+.aft-themes-btn:not(.ne-3):hover {
+    background: var(--grad-mid);
+    color: white;
+}
+
+/* 统计卡片样式 */
+.stats-card {
+    border-radius: 15px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+    overflow: hidden;
+    position: relative;
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.stats-card:hover::before {
+    opacity: 1;
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.aft-section-padding {
+    padding: 5rem 0;
+}
+
+/* 图表和评论区样式 */
+.chart-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    height: 100%;
+    min-height: 400px; /* 确保图表容器高度足够 */
+}
+
+.section-title {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-weight: 600;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 50px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--grad-start), var(--grad-mid));
+}
+
+.comment-content {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.comment-item {
+    border-bottom: 1px solid #f1f1f1;
+    padding: 1rem 0;
+}
+
+.comment-item:last-child {
+    border-bottom: none;
+}
+
+.comment-item .username {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.3rem;
+}
+
+.comment-item .content {
+    color: #666;
+    line-height: 1.6;
+}
+
+.comment-item .time {
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: 0.5rem;
+}
+
+.no-comment {
+    color: #999;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+/* 图表容器样式 */
+#categoryChart {
+    width: 100% !important;
+    height: 300px !important;
+}
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .aft-themes-btn {
+        width: 80%;
+        text-align: center;
+    }
+
+    .chart-container, .comment-content {
+        min-height: auto;
+        margin-bottom: 2rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 英雄区 -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center hero-content">
+                <h1 class="hero-title">B站视频数据分析系统</h1>
+                <p class="hero-subtitle">专注视频数据价值，提供智能化数据分析和可视化服务，助力内容创作与决策优化</p>
+                <div class="hero-buttons">
+                    <a href="{% url 'keshihua' %}" class="aft-themes-btn ne-3" data-hover="">
+                        <span class="fas fa-play me-2"></span>开始探索
+                    </a>
+                    <a href="{% url 'keshihua' %}" class="aft-themes-btn ne-3" data-hover="">
+                        <span class="fas fa-chart-bar me-2"></span>数据分析
+                    </a>
+                    <a href="{% url 'videolist' %}" class="aft-themes-btn" data-hover="">
+                        <span class="fas fa-desktop me-2"></span>数据展示
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+    
+<!-- 统计卡片区 -->
+<section class="aft-section-padding">
+    <div class="container">
+        <div class="row">
+            <!-- 注册用户数 -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card card bg-primary text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users feature-icon"></i>
+                        <h3>{{ user_data.total_user }}</h3>
+                        <p class="mb-0">注册用户</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 视频总数 -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card card bg-success text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-video feature-icon"></i>
+                        <h3>{{ user_data.total_video }}</h3>
+                        <p class="mb-0">视频总数</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 总点赞数 -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card card bg-warning text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-thumbs-up feature-icon"></i>
+                        <h3>{{ user_data.total_likes }}</h3>
+                        <p class="mb-0">总点赞数</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 总评论数 -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card card bg-info text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-comments feature-icon"></i>
+                        <h3>{{ user_data.total_comments }}</h3>
+                        <p class="mb-0">总评论数</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 视频分类分布和最新评论区 -->
+<section class="aft-section-padding" style="background-color: #f9fafb;">
+    <div class="container">
+        <div class="row">
+            <!-- 视频分类分布图表（环形图） -->
+            <div class="col-lg-6 mb-5">
+                <div class="chart-container equal-height">
+                    <h2 class="section-title">视频分类分布</h2>
+                    <!-- 环形图容器（canvas） -->
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 最新评论列表 -->
+            <div class="col-lg-6 mb-5">
+                <div class="comment-content equal-height">
+                    <h2 class="section-title">最新评论</h2>
+                    <div class="comments-list">
+                        {% if latest_comments %}
+                            {% for comment in latest_comments %}
+                            <div class="comment-item">
+                                <div class="username">{{ comment.username }}</div>
+                                <div class="content">{{ comment.content }}</div>
+                                <div class="time">{{ comment.ctime|date:"Y-m-d H:i" }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-comment">
+                                <i class="fas fa-comment-slash" style="font-size: 2rem; margin-bottom: 1rem; color: #ddd;"></i>
+                                <p>暂无评论数据</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 引入必要的JS库（CDN） -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取Canvas元素
+    const chartElement = document.getElementById('categoryChart');
+    if (!chartElement || !(chartElement instanceof HTMLCanvasElement)) {
+        console.error('图表容器不是Canvas元素');
+        return;
+    }
+
+    try {
+        // 获取视频分类数据
+        const categoryData = {{ user_data.video_type_stats|safe }} || [];
+        
+        // 处理空数据
+        if (categoryData.length === 0) {
+            chartElement.parentNode.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #999;">
+                    <i class="fas fa-chart-pie" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>暂无视频分类数据</p>
+                </div>
+            `;
+            return;
+        }
+
+        // 提取标签和数量
+        const labels = categoryData.map(item => item.category || '未知分类');
+        const counts = categoryData.map(item => item.count || 0);
+
+        // 高对比度颜色方案（确保颜色差异明显）
+        const highContrastColors = [
+            '#FF5252',   // 亮红
+            '#4CAF50',   // 亮绿
+            '#2196F3',   // 亮蓝
+            '#FFC107',   // 亮黄
+            '#9C27B0',   // 亮紫
+            '#FF9800',   // 橙色
+            '#E91E63',   // 粉红
+            '#00BCD4',   // 青色
+            '#795548',   // 棕色
+            '#607D8B'    // 深蓝灰
+        ];
+
+        // 初始化环形图
+        new Chart(chartElement, {
+            type: 'doughnut',  // 环形图类型
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: labels.map((_, index) => 
+                        highContrastColors[index % highContrastColors.length]  // 循环使用颜色池
+                    ),
+                    borderColor: '#FFFFFF',  // 白色边框增强区分度
+                    borderWidth: 3,
+                    hoverOffset: 10  // 鼠标悬停时扇形突出效果
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',  // 环形中间空白大小（60%表示中间空白占60%直径）
+                // 强制开启交互（修复悬停无反应）
+                interaction: {
+                    mode: 'nearest',
+                    intersect: true,
+                    enabled: true
+                },
+                plugins: {
+                    // 环形中间显示名称
+                    title: {
+                        display: true,
+                        font: {
+                            size: 20,
+                            weight: 'bold'
+                        },
+                        color: '#333',
+                        padding: {
+                            bottom: 20
+                        },
+                        align: 'center',
+                        position: 'center'
+                    },
+                    // 鼠标悬停提示（增大大小）
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 15, // 增大内边距
+                        boxPadding: 10, // 增大外边距
+                        // 增大提示框字体
+                        titleFont: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 14
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100 * 100) / 100; // 保留两位小数
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    },
+                    // 图例位置
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('图表初始化失败：', error);
+        chartElement.parentNode.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #ff4444;">
+                图表加载失败，请刷新页面重试
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %}

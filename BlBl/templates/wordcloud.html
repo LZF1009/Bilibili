@@ -1,0 +1,587 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}词云分析 - B站视频数据分析及可视化系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        padding: 4rem 0;
+        margin-bottom: 2rem;
+    }
+    .breadcrumb {
+        --bs-breadcrumb-divider: '>';
+    }
+    .breadcrumb-item.active {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    .filter-container {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        border: 1px solid #e9ecef;
+    }
+    .category-btn {
+        border: 1px solid #dee2e6;
+        background-color: white;
+        padding: 0.5rem 1.5rem;
+        margin: 0.25rem;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+    .category-btn:hover, .category-btn.active {
+        background-color: #2575fc;
+        color: white;
+        border-color: #2575fc;
+    }
+    .wordcloud-stats {
+        margin-bottom: 2.5rem;
+    }
+    .stat-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-number, .col-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2575fc;
+        margin-bottom: 0.5rem;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .wordcloud-container {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    .chart-title {
+        color: #343a40;
+        border-bottom: 2px solid #f1f3f4;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    #wordcloudChart {
+        width: 100%;
+        height: 500px;
+        border-radius: 8px;
+        background-color: #fdfdfd;
+    }
+    .tag-list {
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    .tag-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        background-color: white;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .tag-item:hover {
+        background-color: #e7f1ff;
+        border-color: #b3d4ff;
+    }
+    .tag-name {
+        font-weight: 500;
+    }
+    .tag-count {
+        color: #2575fc;
+        font-weight: 600;
+        background-color: #e7f1ff;
+        padding: 0.2rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    .loading-spinner {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+    .error-message {
+        color: #dc3545;
+        padding: 1rem;
+        text-align: center;
+        background-color: #f8d7da;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    .empty-message {
+        color: #6c757d;
+        padding: 2rem;
+        text-align: center;
+    }
+    .page-navigation {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 50px;
+        padding-top: 30px;
+        border-top: 1px solid #eaeaea;
+    }
+.nav-btn {
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-prev {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-prev:hover {
+        background-color: #5a6268;
+        color: white;
+        transform: translateX(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-next {
+        background-color: var(--accent-color);
+        color: white;
+    }
+    
+    .btn-next:hover {
+        background-color: #3a66e0;
+        color: white;
+        transform: translateX(3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    .btn-next {
+        background-color: blue;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 页面标题区 -->
+<div class="page-header">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-4 mb-3">词云分析</h1>
+                <p class="lead">分析视频标签热度，发现内容趋势</p>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb justify-content-center bg-transparent p-0">
+                        <li class="breadcrumb-item"><a href="{% url 'index' %}" class="text-white-50 text-decoration-none">首页</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">词云分析</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- 分类筛选区 -->
+    <section class="atf-section-padding">
+        <div class="filter-container">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>选择分类：</h5>
+                </div>
+                <div class="col-md-10">
+                    <button class="category-btn active" data-type="全部">全部</button>
+                    {% for video_type in video_types %}
+                        <button class="category-btn" data-type="{{ video_type }}">{{ video_type }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 数据统计卡片区 -->
+    <div class="wordcloud-stats">
+        <div class="row">
+            <div class="col-md-3 stat-card">
+                <div class="col-number" id="totalTags">0</div>
+                <div class="stat-label">标签总数</div>
+            </div>
+            <div class="col-md-3 stat-card">
+                <div class="stat-number" id="uniqueTags">0</div>
+                <div class="stat-label">独特标签</div>
+            </div>
+            <div class="col-md-3 stat-card">
+                <div class="stat-number" id="maxFrequency">0</div>
+                <div class="stat-label">最高频次</div>
+            </div>
+            <div class="col-md-3 stat-card">
+                <div class="stat-number" id="currentCategory">全部</div>
+                <div class="stat-label">当前分类</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 词云与列表主展示区 -->
+    <div class="row">
+        <!-- 左侧：词云图 -->
+        <div class="col-lg-8">
+            <div class="wordcloud-container">
+                <h4 class="chart-title"><i class="fas fa-cloud me-2"></i>词云图</h4>
+                <!-- 加载状态 -->
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2">正在生成词云...</p>
+                </div>
+                <!-- 词云图容器 -->
+                <div id="wordcloudChart" style="display: none;"></div>
+                <!-- 错误提示 -->
+                <div class="error-message" id="errorMessage" style="display: none;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="errorText">数据加载失败，请稍后重试</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：标签列表 -->
+        <div class="col-lg-4">
+            <div class="wordcloud-container">
+                <h4 class="chart-title"><i class="fas fa-tags me-2"></i>标签列表</h4>
+                <div class="tag-list" id="tagList">
+                    <div class="empty-message">
+                        <i class="fas fa-tags fa-2x mb-3"></i>
+                        <p>请选择分类查看标签</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <section class="page-navigation">
+        <a href="{% url 'keshihua1' %}" class="nav-btn btn-prev">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+            </svg>
+            趋势分析
+        </a>
+        <a href="{% url 'video_rec' %}" class="nav-btn btn-next">
+            智能推荐
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+            </svg>
+        </a>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<!-- 2. 引入 ECharts 词云扩展 (注意：从echarts 5.x开始，词云是扩展) -->
+<script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.0.0/dist/echarts-wordcloud.min.js"></script>
+<script>
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化词云图
+    initWordCloud();
+    
+    // 分类按钮点击事件
+    document.querySelectorAll('.category-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const category = this.getAttribute('data-type');
+            
+            // 移除所有按钮的active类
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // 为当前点击按钮添加active类
+            this.classList.add('active');
+            // 更新当前分类显示
+            document.getElementById('currentCategory').textContent = category;
+            
+            // 显示加载动画，隐藏错误信息和图表
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('wordcloudChart').style.display = 'none';
+            
+            // 获取词云数据
+            fetchWordCloudData(category);
+        });
+    });
+    
+    // 初始加载"全部"分类数据
+    document.querySelector('.category-btn.active').click();
+});
+
+// 初始化词云图表
+function initWordCloud() {
+    const chartDom = document.getElementById('wordcloudChart');
+    // 使用echarts初始化图表
+    if (typeof echarts !== 'undefined') {
+        window.wordcloudChart = echarts.init(chartDom);
+        
+        // 设置初始图表配置
+        const initialOption = {
+            title: {
+                text: '词云图',
+                subtext: '标签大小表示出现频率',
+                left: 'center',
+                textStyle: {
+                    fontSize: 18
+                }
+            },
+            tooltip: {
+                show: true
+            },
+            series: [{
+                type: 'wordCloud',
+                shape: 'circle',
+                left: 'center',
+                top: 'center',
+                width: '100%',
+                height: '100%',
+                sizeRange: [2, 50],
+                rotationRange: [0, 0],
+                rotationStep: 45,
+                gridSize: 2,
+                drawOutOfBound: false,
+                textStyle: {
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: 'bold',
+                    color: function () {
+                        return 'rgb(' + [
+                            Math.round(Math.random() * 160 + 50),
+                            Math.round(Math.random() * 160 + 50),
+                            Math.round(Math.random() * 160 + 50)
+                        ].join(',') + ')';
+                    }
+                },
+                emphasis: {
+                    focus: 'self',
+                    textStyle: {
+                        textShadowBlur: 5,
+                        textShadowColor: '#333'
+                    }
+                },
+                data: []
+            }]
+        };
+        
+        window.wordcloudChart.setOption(initialOption);
+    } else {
+        console.error('ECharts未加载，请检查ECharts库是否正确引入');
+    }
+}
+
+// 获取词云数据
+function fetchWordCloudData(category) {
+    // 构建请求URL - 使用Django的URL模板标签或直接指定路径
+    
+    const url = `/wordcloud/data/?type=${encodeURIComponent(category)}&limit=100`;
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.data && Array.isArray(data.data)) {
+                // 更新词云图
+                updateWordCloud(data.data);
+                // 更新标签列表
+                updateTagList(data.data);
+                // 更新统计数据
+                updateStats(data.data);
+                
+                // 隐藏加载动画，显示图表
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('wordcloudChart').style.display = 'block';
+            } else {
+                throw new Error('数据格式错误');
+            }
+        })
+        .catch(error => {
+            console.error('获取词云数据失败:', error);
+            showError('数据加载失败: ' + error.message);
+        });
+}
+
+// 更新词云图
+function updateWordCloud(data) {
+    if (!window.wordcloudChart) {
+        console.error('词云图表未初始化');
+        return;
+    }
+    
+    if (!data || data.length === 0) {
+        const emptyOption = {
+            title: {
+                text: '暂无数据',
+                subtext: '该分类下没有标签数据',
+                left: 'center',
+                top: 'center',
+                textStyle: {
+                    fontSize: 18,
+                    color: '#999'
+                },
+                subtextStyle: {
+                    fontSize: 14,
+                    color: '#ccc'
+                }
+            },
+            xAxis: { show: false },
+            yAxis: { show: false },
+            series: []
+        };
+        window.wordcloudChart.setOption(emptyOption);
+        return;
+    }
+    
+    const option = {
+        series: [{
+            type: 'wordCloud',
+            shape: 'circle',
+            left: 'center',
+            top: 'center',
+            width: '90%',
+            height: '90%',
+            sizeRange: [20, 80],
+            rotationRange: [-45, 90],
+            rotationStep: 45,
+            gridSize: 8,
+            drawOutOfBound: false,
+            textStyle: {
+                fontFamily: 'Arial, sans-serif',
+                fontWeight: 'bold',
+                color: function () {
+                    return 'rgb(' + [
+                        Math.round(Math.random() * 160 + 50),
+                        Math.round(Math.random() * 160 + 50),
+                        Math.round(Math.random() * 160 + 50)
+                    ].join(',') + ')';
+                }
+            },
+            emphasis: {
+                focus: 'self',
+                textStyle: {
+                    textShadowBlur: 10,
+                    textShadowColor: '#333'
+                }
+            },
+            data: data
+        }]
+    };
+    
+    window.wordcloudChart.setOption(option);
+}
+
+// 更新标签列表
+function updateTagList(data) {
+    const tagList = document.getElementById('tagList');
+    tagList.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+        tagList.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-inbox fa-2x mb-3"></i>
+                <p>该分类下暂无标签数据</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // 按词频排序
+    const sortedData = data.sort((a, b) => b.value - a.value);
+    
+    sortedData.forEach(item => {
+        const tagItem = document.createElement('div');
+        tagItem.className = 'tag-item';
+        tagItem.innerHTML = `
+            <span class="tag-name">${item.name}</span>
+            <span class="tag-count">${item.value}</span>
+        `;
+        tagList.appendChild(tagItem);
+    });
+}
+
+// 更新统计数据
+function updateStats(data) {
+    if (!data || data.length === 0) {
+        document.getElementById('totalTags').textContent = '0';
+        document.getElementById('uniqueTags').textContent = '0';
+        document.getElementById('maxFrequency').textContent = '0';
+        return;
+    }
+    
+    const totalTags = data.reduce((sum, item) => sum + item.value, 0);
+    const uniqueTags = data.length;
+    const maxFrequency = Math.max(...data.map(item => item.value));
+    
+    document.getElementById('totalTags').textContent = totalTags.toLocaleString();
+    document.getElementById('uniqueTags').textContent = uniqueTags.toLocaleString();
+    document.getElementById('maxFrequency').textContent = maxFrequency.toLocaleString();
+}
+
+// 显示错误信息
+function showError(message) {
+    document.getElementById('errorText').textContent = message;
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'block';
+    document.getElementById('wordcloudChart').style.display = 'none';
+    
+    // 清空统计数据
+    document.getElementById('totalTags').textContent = '0';
+    document.getElementById('uniqueTags').textContent = '0';
+    document.getElementById('maxFrequency').textContent = '0';
+    
+    // 清空标签列表
+    const tagList = document.getElementById('tagList');
+    tagList.innerHTML = `
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span>数据加载失败，请刷新页面重试</span>
+        </div>
+    `;
+}
+
+// 窗口大小变化时重新调整图表大小
+window.addEventListener('resize', function() {
+    if (window.wordcloudChart) {
+        window.wordcloudChart.resize();
+    }
+});
+function renderWordCloud() {
+  try {
+    // 渲染逻辑
+  } catch (error) {
+    console.error('词云渲染失败:', error);
+    // 兜底：显示默认内容
+    document.getElementById('wordcloud-container').innerHTML = '词云加载中...';
+  }
+}
+
+</script>
+    
+{% endblock %}

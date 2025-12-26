@@ -1,0 +1,26 @@
+{#    </div>#}
+{##}
+{#    <!-- 公共 JavaScript -->#}
+{#    <script src="{% static 'assets/js/jquery-1.12.4.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/bootstrap/js/bootstrap.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/modernizr.custom.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.loader.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/isotope.pkgd.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.stellar.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/owlcarousel/js/owl.carousel.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.countTo.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.appear.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.speeder.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/ajax-mail.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/wow.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.meanmenu.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.slider.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquery.easing.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/lightcase.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/jquerymagnific.min.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/form-contact.js' %}"></script>#}
+{#    <script src="{% static 'assets/js/main.js' %}"></script>#}
+{#    #}
+{#    <!-- 页面专属 JavaScript -->#}
+{#    {% block extra_js %}{% endblock %}#}
+{#</body>#}
